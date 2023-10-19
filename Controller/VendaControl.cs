@@ -5,6 +5,7 @@ using System.Linq;
 using TrabalhoCantina.Models;
 using TrabalhoCantina.Data;
 using teste.Migrations;
+using System.Security;
 
 namespace TrabalhoCantina.Controllers
 {
@@ -30,9 +31,26 @@ namespace TrabalhoCantina.Controllers
                 {
                     return BadRequest("Cliente não encontrado");
                 }
-
+                // Verifica se o Produto com o ID especifico existe no banco de dados
+                var produto = _dbContext.Produtos.FirstOrDefault(p => p.ProdutoId == venda.produto.ProdutoId);
+                if (produto == null)  
+                {
+                    return BadRequest("Produto não encontrado");
+                }
+                //verifica se tem a quantidade no estoque
+                else if (produto.Estoque <= 0)  
+                {
+                    return BadRequest("O saldo no estoque esta zerado");
+                } 
+                // altera a quantidade no estoque
+                else 
+                {
+                    produto.Estoque = produto.Estoque -1 ;
+                }
+                
                 // Certifique-se de configurar a data da venda
                 venda.DataVenda = DateTime.Now;
+                
 
                 // Adicione a venda ao contexto do Entity Framework
                 _dbContext.Vendas.Add(venda);
@@ -40,8 +58,11 @@ namespace TrabalhoCantina.Controllers
                 // Salve as alterações no banco de dados
                 _dbContext.SaveChanges();
 
+                
                 // Retorna a venda criada
-                return CreatedAtAction(nameof(GetById), new { id = venda.VendaId }, venda);
+                return CreatedAtAction(nameof(GetById), new { id = venda.VendaId }, new {Venda = venda, Produto = produto});
+                
+                
             }
             catch (Exception ex)
             {
